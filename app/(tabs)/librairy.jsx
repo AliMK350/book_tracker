@@ -11,7 +11,7 @@ import { LoadingSpinner } from '../../components/LoadingSpinner';
 export default function LibraryScreen() {
   const router = useRouter();
   const { user, token } = useAuth();
-  const { myBooks, fetchMyBooks, loadingBooks, removeBook } = useBooks();
+  const { myBooks, fetchMyBooks, loadingBooks, removeBook, toggleFavorite } = useBooks();
   const [filter, setFilter] = useState('all');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -84,13 +84,14 @@ export default function LibraryScreen() {
           data={filteredBooks}
           keyExtractor={(item) => item._id || item.id}
           renderItem={({ item }) => {
-            const bookId = item.googleBooksId || item._id || item.id;
+            const bookId = item._id || item.id || item.googleBooksId;
+            const favoriteId = item._id || item.id;
             return (
               <BookCard
                 book={item}
                 showProgress
                 onPress={() => router.push(`/book/${bookId}`)}
-                onFavorite={() => {}}
+                onFavorite={() => toggleFavorite(favoriteId, token)}
               />
             );
           }}

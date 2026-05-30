@@ -17,8 +17,8 @@ import { LoadingSpinner } from '../../components/LoadingSpinner';
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { user } = useAuth();
-  const { myBooks, fetchMyBooks } = useBooks();
+  const { user, token } = useAuth();
+  const { myBooks, fetchMyBooks, toggleFavorite } = useBooks();
   const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function HomeScreen() {
   const loadBooks = async () => {
     try {
       if (user) {
-        await fetchMyBooks(user.id, '');
+        await fetchMyBooks(user.id, token);
       }
     } catch (error) {
       console.error('Failed to load books', error);
@@ -78,14 +78,19 @@ export default function HomeScreen() {
           </>
         }
         data={booksInProgress}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => (
-          <BookCard
-            book={item}
-            showProgress
-            onPress={() => router.push(`/book/${item.id}`)}
-          />
-        )}
+        keyExtractor={(item) => item._id || item.id}
+        renderItem={({ item }) => {
+          const navId = item._id || item.id || item.googleBooksId;
+          const favoriteId = item._id || item.id;
+          return (
+            <BookCard
+              book={item}
+              showProgress
+              onPress={() => router.push(`/book/${navId}`)}
+              onFavorite={() => toggleFavorite(favoriteId, token)}
+            />
+          );
+        }}
         ListEmptyComponent={
           myBooks.length === 0 ? (
             <View style={styles.emptyContainer}>

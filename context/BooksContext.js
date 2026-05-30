@@ -3,6 +3,15 @@ import * as booksService from '../services/books';
 
 export const BooksContext = createContext();
 
+const normalizeBook = (book) => {
+  if (!book) return book;
+  return {
+    ...book,
+    id: book.id || book._id,
+    googleBooksId: book.googleBooksId || book.id,
+  };
+};
+
 export const BooksProvider = ({ children }) => {
   const [myBooks, setMyBooks] = useState([]);
   const [searchResults, setSearchResults] = useState([]);
@@ -24,8 +33,8 @@ export const BooksProvider = ({ children }) => {
     addBook: async (book, userId, token) => {
       try {
         setError(null);
-        const newBook = await booksService.addBook(book, userId, token);
-        setMyBooks([...myBooks, newBook]);
+        const newBook = normalizeBook(await booksService.addBook(book, userId, token));
+        setMyBooks(prevBooks => [...prevBooks, newBook]);
       } catch (err) {
         setError(err.message);
         throw err;
@@ -35,7 +44,7 @@ export const BooksProvider = ({ children }) => {
       try {
         setError(null);
         await booksService.removeBook(bookId, userId, token);
-        setMyBooks(myBooks.filter(b => (b._id || b.id) !== bookId));
+        setMyBooks(prevBooks => prevBooks.filter(b => (b._id || b.id) !== bookId));
       } catch (err) {
         setError(err.message);
         throw err;
@@ -44,8 +53,8 @@ export const BooksProvider = ({ children }) => {
     updateProgress: async (bookId, pagesRead, token) => {
       try {
         setError(null);
-        const updated = await booksService.updateProgress(bookId, pagesRead, token);
-        setMyBooks(myBooks.map(b => (b._id || b.id) === bookId ? updated : b));
+        const updated = normalizeBook(await booksService.updateProgress(bookId, pagesRead, token));
+        setMyBooks(prevBooks => prevBooks.map(b => (b._id || b.id) === bookId ? updated : b));
       } catch (err) {
         setError(err.message);
         throw err;
@@ -55,7 +64,7 @@ export const BooksProvider = ({ children }) => {
       try {
         setLoadingBooks(true);
         const books = await booksService.getMyBooks(userId, token);
-        setMyBooks(books);
+        setMyBooks(books.map(normalizeBook));
       } catch (err) {
         setError(err.message);
       } finally {
@@ -83,13 +92,13 @@ export const BooksProvider = ({ children }) => {
     toggleFavorite: async (bookId, token) => {
       try {
         setError(null);
-        const updated = await booksService.toggleFavorite(bookId, token);
+        const updated = normalizeBook(await booksService.toggleFavorite(bookId, token));
         // Update myBooks list with new favorite status
-        setMyBooks(myBooks.map(b => (b._id || b.id) === bookId ? updated : b));
+        setMyBooks(prevBooks => prevBooks.map(b => (b._id || b.id) === bookId ? updated : b));
         if (updated.isFavorite) {
-          setFavorites([...favorites, updated]);
+          setFavorites(prevFavorites => [...prevFavorites, updated]);
         } else {
-          setFavorites(favorites.filter(b => (b._id || b.id) !== bookId));
+          setFavorites(prevFavorites => prevFavorites.filter(b => (b._id || b.id) !== bookId));
         }
       } catch (err) {
         setError(err.message);

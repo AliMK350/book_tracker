@@ -12,43 +12,45 @@ export const BookCard = ({
   style 
 }) => {
   return (
-    <TouchableOpacity 
-      style={[styles.card, style]}
-      onPress={onPress}
-      activeOpacity={0.8}
-    >
-      <Image 
-        source={{ uri: book.imageUrl || 'https://via.placeholder.com/100x150' }}
-        style={styles.image}
-      />
-      
-      <View style={styles.content}>
-        <Text style={styles.title} numberOfLines={2}>{book.title}</Text>
-        <Text style={styles.author} numberOfLines={1}>{book.author}</Text>
+    <View style={[styles.card, style]}>
+      <TouchableOpacity 
+        style={styles.cardBody}
+        onPress={onPress}
+        activeOpacity={0.8}
+      >
+        <Image 
+          source={{ uri: book.imageUrl || 'https://via.placeholder.com/100x150' }}
+          style={styles.image}
+        />
         
-        {showProgress && book.pageCount > 0 && (
-          <>
-            <View style={styles.progressContainer}>
-              <View style={styles.progressBar}>
-                <View 
-                  style={[
-                    styles.progressFill,
-                    { width: `${Math.min((book.pagesRead / book.pageCount) * 100, 100)}%` }
-                  ]}
-                />
+        <View style={styles.content}>
+          <Text style={styles.title} numberOfLines={2}>{book.title}</Text>
+          <Text style={styles.author} numberOfLines={1}>{book.author}</Text>
+          
+          {showProgress && book.pageCount > 0 && (
+            <>
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBar}>
+                  <View 
+                    style={[
+                      styles.progressFill,
+                      { width: `${Math.min((book.pagesRead / book.pageCount) * 100, 100)}%` }
+                    ]}
+                  />
+                </View>
+                <Text style={styles.progressText}>
+                  {formatProgress(book.pagesRead, book.pageCount)}
+                </Text>
               </View>
-              <Text style={styles.progressText}>
-                {formatProgress(book.pagesRead, book.pageCount)}
-              </Text>
-            </View>
-          </>
-        )}
-      </View>
+            </>
+          )}
+        </View>
+      </TouchableOpacity>
 
       {onFavorite && (
         <TouchableOpacity 
           style={styles.favoriteBtn}
-          onPress={() => onFavorite(book.id)}
+          onPress={() => onFavorite(book._id || book.id)}
         >
           <Ionicons 
             name={book.isFavorite ? 'heart' : 'heart-outline'} 
@@ -57,7 +59,7 @@ export const BookCard = ({
           />
         </TouchableOpacity>
       )}
-    </TouchableOpacity>
+    </View>
   );
 };
 
@@ -68,6 +70,11 @@ const styles = StyleSheet.create({
     padding: PADDING.md,
     marginBottom: PADDING.md,
     flexDirection: 'row',
+  },
+  cardBody: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   image: {
     width: 80,

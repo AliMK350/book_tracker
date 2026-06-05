@@ -2,7 +2,12 @@ import React from 'react';
 import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { COLORS } from '../utils/constants';
 
-export const LoadingSpinner = ({ size = 'large', message = 'Chargement...' }) => {
+interface LoadingSpinnerProps {
+  size?: number | 'small' | 'large';
+  message?: string;
+}
+
+export const LoadingSpinner: React.FC<LoadingSpinnerProps> = ({ size = 'large', message = 'Chargement...' }) => {
   return (
     <View style={styles.container}>
       <ActivityIndicator size={size} color={COLORS.primary} />
@@ -16,7 +21,7 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.dark,
+    backgroundColor: COLORS.surface,
   },
   text: {
     marginTop: 16,

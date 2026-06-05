@@ -72,12 +72,12 @@ export const BooksProvider = ({ children }) => {
       }
     },
 
-    // Recherche
-    searchBooks: async (query) => {
+    // Recherche (accepts optional genre)
+    searchBooks: async (query, genre = '') => {
       try {
         setError(null);
         setLoadingBooks(true);
-        const results = await booksService.searchBooks(query);
+        const results = await booksService.searchBooks(query, genre);
         setSearchResults(results);
       } catch (err) {
         setError(err.message);

@@ -10,38 +10,43 @@ export default function Layout() {
     <Tabs
       screenOptions={{
         headerStyle: {
-          backgroundColor: COLORS.dark,
+          backgroundColor: COLORS.surface,
+          shadowColor: 'transparent',
         },
         headerTitle: () => (
-          <Text style={{ color: COLORS.textPrimary, fontSize: 18, fontWeight: 'bold' }}>
+          <Text style={{ color: COLORS.primary, fontSize: 20, fontWeight: '800' }}>
             📚 Book Tracker
           </Text>
         ),
 
         headerRight: () => (
           <View style={{ flexDirection: 'row', marginRight: 15 }}>
-            <TouchableOpacity onPress={() => router.push('/notifications')}>
-              <Ionicons name="notifications-outline" size={22} color={COLORS.textPrimary} style={{ marginRight: 15 }} />
+            <TouchableOpacity onPress={() => router.push('/notifications')} style={{ marginRight: 15 }}>
+              <Ionicons name="notifications-outline" size={22} color={COLORS.textPrimary} />
             </TouchableOpacity>
             <TouchableOpacity onPress={() => router.push('/profile')}>
               <Image
                 source={{ uri: 'https://i.pravatar.cc/40' }}
-                style={{ width: 30, height: 30, borderRadius: 15 }}
+                style={{ width: 34, height: 34, borderRadius: 17, borderWidth: 1, borderColor: COLORS.border }}
               />
             </TouchableOpacity>
           </View>
         ),
 
         tabBarStyle: {
-          backgroundColor: COLORS.darkMedium,
+          backgroundColor: COLORS.surface,
           borderTopWidth: 0,
-          height: 65,
-          borderRadius: 20,
-          marginHorizontal: 10,
-          marginBottom: 10,
-          position: 'absolute'
+          height: 70,
+          borderRadius: 24,
+          marginHorizontal: 12,
+          marginBottom: 12,
+          position: 'absolute',
+          shadowColor: '#000',
+          shadowOpacity: 0.12,
+          shadowRadius: 12,
+          shadowOffset: { width: 0, height: -4 },
+          elevation: 10,
         },
-
         tabBarActiveTintColor: COLORS.primary,
         tabBarInactiveTintColor: COLORS.textTertiary,
       }}

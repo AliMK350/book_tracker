@@ -7,8 +7,9 @@ module.exports = {
   ...appJson,
   expo: {
     ...appJson.expo,
+    plugins: [...(appJson.expo?.plugins ?? []), 'expo-asset'],
     extra: {
-      EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://localhost:3000/api',
+      EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL || 'http://10.200.7.174:3000/api',
       EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY: process.env.EXPO_PUBLIC_GOOGLE_BOOKS_API_KEY || '',
     },
   },

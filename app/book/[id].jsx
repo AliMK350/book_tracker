@@ -24,7 +24,7 @@ export default function BookDetailScreen() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { user, token } = useAuth();
-  const { addBook, removeBook, myBooks, updateProgress, toggleFavorite } = useBooks();
+  const { addBook, removeBook, myBooks, updateProgress, toggleFavorite, fetchMyBooks } = useBooks();
   const [book, setBook] = useState(null);
   const [libraryBook, setLibraryBook] = useState(null);
   const [isInLibrary, setIsInLibrary] = useState(false);
@@ -103,11 +103,32 @@ export default function BookDetailScreen() {
 
   const handleAddToLibrary = async () => {
     try {
+      if (!user?.id || !token) {
+        console.log('[handleAddToLibrary] Missing auth', { user, tokenPresent: !!token });
+        Alert.alert('Erreur', "Veuillez vous connecter pour ajouter à la bibliothèque.");
+        return;
+      }
+      if (!book) {
+        Alert.alert('Erreur', 'Livre introuvable');
+        return;
+      }
+
       setActionLoading(true);
       await addBook(book, user.id, token);
+
+
       Alert.alert('Succès', 'Livre ajouté à votre bibliothèque');
+
+      // Re-sync library from backend (prevents UI state mismatch)
+      try {
+        await fetchMyBooks?.(user.id, token);
+      } catch (e) {
+        console.log('[handleAddToLibrary] fetchMyBooks failed', e);
+      }
     } catch (error) {
-      Alert.alert('Erreur', "Impossible d'ajouter le livre");
+      const msg = error?.message || String(error);
+      console.error('[handleAddToLibrary] failed', error);
+      Alert.alert('Erreur', msg);
     } finally {
       setActionLoading(false);
     }
@@ -124,11 +145,31 @@ export default function BookDetailScreen() {
           style: 'destructive',
           onPress: async () => {
             try {
+              if (!user?.id || !token) {
+                console.log('[handleRemoveFromLibrary] Missing auth', { user, tokenPresent: !!token });
+                Alert.alert('Erreur', "Veuillez vous connecter.");
+                return;
+              }
+              const targetId = libraryBook?._id || libraryBook?.id;
+              if (!targetId) {
+                Alert.alert('Erreur', 'Livre introuvable dans votre bibliothèque');
+                return;
+              }
+
               setActionLoading(true);
-              await removeBook(libraryBook._id || libraryBook.id, user.id, token);
+              await removeBook(targetId, user.id, token);
               Alert.alert('Succès', 'Livre retiré de votre bibliothèque');
+
+              // Re-sync
+              try {
+                await fetchMyBooks?.(user.id, token);
+              } catch (e) {
+                console.log('[handleRemoveFromLibrary] fetchMyBooks failed', e);
+              }
             } catch (error) {
-              Alert.alert('Erreur', 'Impossible de retirer le livre');
+              const msg = error?.message || String(error);
+              console.error('[handleRemoveFromLibrary] failed', error);
+              Alert.alert('Erreur', msg);
             } finally {
               setActionLoading(false);
             }
@@ -162,9 +203,32 @@ export default function BookDetailScreen() {
 
   const handleToggleFavorite = async () => {
     try {
-      await toggleFavorite(libraryBook._id || libraryBook.id, token);
+      if (!user?.id || !token) {
+        console.log('[handleToggleFavorite] Missing auth', { user, tokenPresent: !!token });
+        Alert.alert('Erreur', "Veuillez vous connecter.");
+        return;
+      }
+      const targetId = libraryBook?._id || libraryBook?.id;
+      if (!targetId) {
+        Alert.alert('Erreur', 'Livre introuvable dans votre bibliothèque');
+        return;
+      }
+
+      setActionLoading(true);
+      await toggleFavorite(targetId, token);
+
+      // Re-sync favorites (and any local flags)
+      try {
+        await fetchMyBooks?.(user.id, token);
+      } catch (e) {
+        console.log('[handleToggleFavorite] fetchMyBooks failed', e);
+      }
     } catch (error) {
-      Alert.alert('Erreur', 'Impossible de changer le favori');
+      const msg = error?.message || String(error);
+      console.error('[handleToggleFavorite] failed', error);
+      Alert.alert('Erreur', msg);
+    } finally {
+      setActionLoading(false);
     }
   };
 
@@ -197,6 +261,7 @@ export default function BookDetailScreen() {
   };
 
   const renderStars = (rating, interactive = false, onSelect = null) => {
+    const safeRating = Number(rating) || 0;
     return (
       <View style={styles.starsContainer}>
         {[1, 2, 3, 4, 5].map((star) => (
@@ -205,10 +270,11 @@ export default function BookDetailScreen() {
             disabled={!interactive}
             onPress={() => onSelect && onSelect(star)}
           >
+
             <Ionicons
-              name={star <= rating ? 'star' : 'star-outline'}
+              name={star <= safeRating ? 'star' : 'star-outline'}
               size={interactive ? 28 : 16}
-              color={star <= rating ? '#f59e0b' : COLORS.textTertiary}
+              color={star <= safeRating ? '#f59e0b' : COLORS.textTertiary}
               style={{ marginRight: 2 }}
             />
           </TouchableOpacity>
@@ -263,29 +329,31 @@ export default function BookDetailScreen() {
 
         <View style={styles.content}>
           {/* Title & Author */}
-          <Text style={styles.title}>{book.title}</Text>
-          <Text style={styles.author}>{book.author}</Text>
+          <Text style={styles.title}>{String(book.title ?? '')}</Text>
+          <Text style={styles.author}>{String(book.author ?? '')}</Text>
 
           {/* Info chips */}
           <View style={styles.infoContainer}>
             {book.pageCount > 0 && (
               <View style={styles.infoChip}>
                 <Ionicons name="book-outline" size={14} color={COLORS.primary} />
-                <Text style={styles.infoText}>{book.pageCount} pages</Text>
+                <Text style={styles.infoText}>{String(book.pageCount)} pages</Text>
               </View>
             )}
             {book.publishedDate && (
+
               <View style={styles.infoChip}>
                 <Ionicons name="calendar-outline" size={14} color={COLORS.primary} />
-                <Text style={styles.infoText}>{book.publishedDate}</Text>
+                <Text style={styles.infoText}>{String(book.publishedDate ?? '')}</Text>
               </View>
             )}
             {book.categories?.length > 0 && (
               <View style={styles.infoChip}>
                 <Ionicons name="pricetag-outline" size={14} color={COLORS.primary} />
-                <Text style={styles.infoText}>{book.categories[0]}</Text>
+                <Text style={styles.infoText}>{String(book.categories?.[0] ?? '')}</Text>
               </View>
             )}
+
           </View>
 
           {/* Add/Remove + Favorite */}
@@ -358,8 +426,9 @@ export default function BookDetailScreen() {
           {/* Description */}
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>📝 Résumé</Text>
-            <Text style={styles.description}>{book.description}</Text>
+            <Text style={styles.description}>{String(book.description ?? '')}</Text>
           </View>
+
 
           {/* Reviews Section */}
           {isInLibrary && (
@@ -393,13 +462,15 @@ export default function BookDetailScreen() {
                 <View key={review._id || index} style={styles.reviewCard}>
                   <View style={styles.reviewHeader}>
                     <Text style={styles.reviewAuthor}>
-                      {review.userId?.name || 'Anonyme'}
+                      {String(review.userId?.name || 'Anonyme')}
                     </Text>
+
                     {renderStars(review.rating)}
                   </View>
                   {review.comment ? (
-                    <Text style={styles.reviewComment}>{review.comment}</Text>
+                    <Text style={styles.reviewComment}>{String(review.comment)}</Text>
                   ) : null}
+
                 </View>
               ))}
             </View>
@@ -416,11 +487,11 @@ export default function BookDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.dark,
+    backgroundColor: COLORS.surface,
   },
   loadingContainer: {
     flex: 1,
-    backgroundColor: COLORS.dark,
+    backgroundColor: COLORS.surface,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -473,7 +544,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    backgroundColor: COLORS.darkMedium,
+    backgroundColor: COLORS.card,
     paddingHorizontal: PADDING.md,
     paddingVertical: PADDING.sm,
     borderRadius: 20,
@@ -492,7 +563,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: COLORS.darkMedium,
+    backgroundColor: COLORS.card,
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -513,7 +584,7 @@ const styles = StyleSheet.create({
   // Progress
   progressBarLarge: {
     height: 10,
-    backgroundColor: COLORS.darkLight,
+    backgroundColor: COLORS.card,
     borderRadius: 5,
     overflow: 'hidden',
     marginBottom: PADDING.sm,
@@ -535,7 +606,7 @@ const styles = StyleSheet.create({
   },
   pagesInput: {
     flex: 1,
-    backgroundColor: COLORS.darkMedium,
+    backgroundColor: COLORS.card,
     color: COLORS.textPrimary,
     paddingHorizontal: PADDING.md,
     paddingVertical: PADDING.md,
@@ -552,12 +623,12 @@ const styles = StyleSheet.create({
     marginBottom: PADDING.md,
   },
   reviewForm: {
-    backgroundColor: COLORS.darkMedium,
+    backgroundColor: COLORS.card,
     borderRadius: BORDER_RADIUS.lg,
     padding: PADDING.lg,
   },
   reviewInput: {
-    backgroundColor: COLORS.darkLight,
+    backgroundColor: COLORS.card,
     color: COLORS.textPrimary,
     borderRadius: BORDER_RADIUS.md,
     paddingHorizontal: PADDING.md,
@@ -568,7 +639,7 @@ const styles = StyleSheet.create({
     minHeight: 80,
   },
   reviewCard: {
-    backgroundColor: COLORS.darkMedium,
+    backgroundColor: COLORS.card,
     borderRadius: BORDER_RADIUS.md,
     padding: PADDING.md,
     marginBottom: PADDING.sm,

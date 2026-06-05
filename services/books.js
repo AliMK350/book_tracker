@@ -41,33 +41,133 @@ const fallbackBooks = [
     publishedDate: '1862',
     categories: ['Classique', 'Historique'],
   },
+  {
+    id: 'fallback-5',
+    title: 'La Passe-miroir',
+    author: 'Christelle Dabos',
+    description: 'Une jeune liseuse traverse des archipels flottants et des complots de cour.',
+    pageCount: 672,
+    imageUrl: 'https://covers.openlibrary.org/b/id/11063968-L.jpg',
+    publishedDate: '2013',
+    categories: ['Fantastique', 'Aventure'],
+  },
+  {
+    id: 'fallback-6',
+    title: 'Le Nom du vent',
+    author: 'Patrick Rothfuss',
+    description: 'Histoire d’un magicien devenu légende racontée par ses propres mots.',
+    pageCount: 662,
+    imageUrl: 'https://covers.openlibrary.org/b/id/8319255-L.jpg',
+    publishedDate: '2007',
+    categories: ['Fantastique', 'Aventure'],
+  },
+  {
+    id: 'fallback-7',
+    title: 'La couleur des sentiments',
+    author: 'Kathryn Stockett',
+    description: 'Trois femmes découvrent une amitié improbable dans l’Amérique ségrégationniste.',
+    pageCount: 532,
+    imageUrl: 'https://covers.openlibrary.org/b/id/8139216-L.jpg',
+    publishedDate: '2009',
+    categories: ['Historique', 'Drame'],
+  },
+  {
+    id: 'fallback-8',
+    title: 'L’Étranger',
+    author: 'Albert Camus',
+    description: 'Un homme oublie les conventions sociales et affronte le sens de la vie.',
+    pageCount: 123,
+    imageUrl: 'https://covers.openlibrary.org/b/id/8231855-L.jpg',
+    publishedDate: '1942',
+    categories: ['Classique', 'Philosophie'],
+  },
 ];
 
 const fallbackBookMap = new Map(fallbackBooks.map((book) => [book.id, book]));
 
 // Recherche via Google Books API (gratuit)
-export const searchBooks = async (query) => {
+const filterFallbackBooks = (query, genre) => {
+  const normalizedQuery = query?.trim().toLowerCase() || '';
+  const normalizedGenre = genre?.trim().toLowerCase() || '';
+
+  if (!normalizedQuery || normalizedQuery === 'bestseller') {
+    return fallbackBooks;
+  }
+
+  return fallbackBooks.filter((book) => {
+    const searchableText = [
+      book.title,
+      book.author,
+      book.description,
+      book.publishedDate,
+      ...(book.categories || []),
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase();
+
+    const matchesQuery = !normalizedQuery || searchableText.includes(normalizedQuery);
+    const matchesGenre =
+      !normalizedGenre ||
+      book.categories.some((category) =>
+        category.toLowerCase().includes(normalizedGenre) ||
+        normalizedGenre.includes(category.toLowerCase())
+      );
+
+    return matchesQuery && matchesGenre;
+  });
+};
+
+export const searchBooks = async (query, genre = '') => {
   try {
     const keyParam = GOOGLE_BOOKS_API_KEY ? `&key=${GOOGLE_BOOKS_API_KEY}` : '';
+    const genreMap = {
+      'Science-fiction': 'Science Fiction',
+      'Dystopie': 'Dystopian',
+      'Classique': 'Classics',
+      'Fantastique': 'Fantasy',
+      'Historique': 'History',
+      'Romance': 'Romance',
+      'Science': 'Science',
+      'Fiction': 'Fiction',
+    };
+
+    const subject = genre ? (genreMap[genre] || genre.replace(/[-_]/g, ' ')) : '';
+    const queryText = query?.trim() || '';
+    const qElements = [];
+    if (subject) qElements.push(`subject:${subject}`);
+    if (queryText) qElements.push(queryText);
+    const q = qElements.join(' ');
+
+    if (!q) {
+      return fallbackBooks;
+    }
+
     const response = await fetch(
-      `${GOOGLE_BOOKS_API_URL}?q=${encodeURIComponent(query)}${keyParam}&maxResults=20`
+      `${API_BASE_URL}/books/search?q=${encodeURIComponent(q)}`
     );
+
+    if (!response.ok) {
+      console.error('[books.searchBooks] response not ok', { status: response.status, statusText: response.statusText });
+      return filterFallbackBooks(queryText, genre || subject);
+    }
+
     const data = await response.json();
-    
-    const results = data.items?.map(item => ({
+    const results = data.items?.map((item) => ({
       id: item.id,
       title: item.volumeInfo.title,
-      author: item.volumeInfo.authors?.[0] || 'Unknown',
+      author: item.volumeInfo.authors?.[0] || 'Auteur inconnu',
       description: item.volumeInfo.description,
       pageCount: item.volumeInfo.pageCount || 0,
-      imageUrl: item.volumeInfo.imageLinks?.thumbnail?.replace('http://', 'https://'),
+      imageUrl: item.volumeInfo.imageLinks?.thumbnail?.replace('http://', 'https://') || 'https://via.placeholder.com/150x220.png?text=Pas+d%27image',
       publishedDate: item.volumeInfo.publishedDate,
       categories: item.volumeInfo.categories || [],
     })) || [];
 
-    return results.length ? results : fallbackBooks;
+    return results.length > 0 ? results : filterFallbackBooks(queryText, genre || subject);
   } catch (error) {
-    return fallbackBooks;
+    console.error('[books.searchBooks] failed', { query, genre, error });
+    return filterFallbackBooks(query, genre);
   }
 };
 
@@ -78,9 +178,8 @@ export const getBookDetails = async (bookId) => {
   }
 
   try {
-    const keyParam = GOOGLE_BOOKS_API_KEY ? `?key=${GOOGLE_BOOKS_API_KEY}` : '';
     const response = await fetch(
-      `${GOOGLE_BOOKS_API_URL}/${bookId}${keyParam}`
+      `${API_BASE_URL}/books/details/${bookId}`
     );
     
     if (!response.ok) {
@@ -96,7 +195,7 @@ export const getBookDetails = async (bookId) => {
       authors: item.volumeInfo.authors || [],
       description: item.volumeInfo.description || 'Aucune description disponible.',
       pageCount: item.volumeInfo.pageCount || 0,
-      imageUrl: item.volumeInfo.imageLinks?.thumbnail?.replace('http://', 'https://'),
+      imageUrl: item.volumeInfo.imageLinks?.thumbnail?.replace('http://', 'https://') || 'https://via.placeholder.com/150x220.png?text=Pas+d%27image',
       publishedDate: item.volumeInfo.publishedDate,
       categories: item.volumeInfo.categories || [],
       publisher: item.volumeInfo.publisher || '',
@@ -104,6 +203,7 @@ export const getBookDetails = async (bookId) => {
       averageRating: item.volumeInfo.averageRating || null,
     };
   } catch (error) {
+    console.error('[books.getBookDetails] failed', { bookId, error });
     if (fallbackBookMap.has(bookId)) {
       return fallbackBookMap.get(bookId);
     }
@@ -113,47 +213,76 @@ export const getBookDetails = async (bookId) => {
 
 // Ma bibliothèque
 export const addBook = async (book, userId, token) => {
-  const response = await fetch(`${API_BASE_URL}/books/add`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`,
-    },
-    body: JSON.stringify({ book, userId }),
-  });
+  try {
+    const url = `${API_BASE_URL}/books/add`;
+    const payload = {
+      book: {
+        ...book,
+        id: book.id || book.googleBooksId,
+        author: book.author || (Array.isArray(book.authors) ? book.authors[0] : book.author) || 'Auteur inconnu',
+      },
+      userId,
+    };
 
-  if (!response.ok) {
-    throw new Error('Failed to add book');
+    const response = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.json().catch(() => null);
+      const message = errorBody?.error || 'Failed to add book';
+      throw new Error(message);
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('[books.addBook] failed', { error });
+    throw error;
   }
-
-  return response.json();
 };
 
 export const removeBook = async (bookId, userId, token) => {
-  const response = await fetch(`${API_BASE_URL}/books/${bookId}`, {
-    method: 'DELETE',
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+  try {
+    const url = `${API_BASE_URL}/books/${bookId}`;
+    const response = await fetch(url, {
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
 
-  if (!response.ok) {
-    throw new Error('Failed to remove book');
+    if (!response.ok) {
+      throw new Error('Failed to remove book');
+    }
+  } catch (error) {
+    console.error('[books.removeBook] failed', { bookId, error });
+    throw error;
   }
 };
 
 export const getMyBooks = async (userId, token) => {
-  const response = await fetch(`${API_BASE_URL}/books/my-books/${userId}`, {
-    headers: {
-      'Authorization': `Bearer ${token}`,
-    },
-  });
+  try {
+    const url = `${API_BASE_URL}/books/my-books/${userId}`;
+    const response = await fetch(url, {
+      headers: {
+        'Authorization': `Bearer ${token}`,
+      },
+    });
 
-  if (!response.ok) {
-    throw new Error('Failed to fetch books');
+    if (!response.ok) {
+      throw new Error('Failed to fetch books');
+    }
+
+    return response.json();
+  } catch (error) {
+    console.error('[books.getMyBooks] failed', { userId, error });
+    throw error;
   }
-
-  return response.json();
 };
 
 export const updateProgress = async (bookId, pagesRead, token) => {

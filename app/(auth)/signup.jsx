@@ -132,7 +132,7 @@ export default function SignupScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.dark,
+    backgroundColor: COLORS.surface,
   },
   content: {
     padding: PADDING.lg,
@@ -160,7 +160,7 @@ const styles = StyleSheet.create({
     marginBottom: PADDING.sm,
   },
   input: {
-    backgroundColor: COLORS.darkMedium,
+    backgroundColor: COLORS.card,
     color: COLORS.textPrimary,
     paddingHorizontal: PADDING.md,
     paddingVertical: PADDING.md,

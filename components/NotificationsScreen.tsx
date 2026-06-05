@@ -12,8 +12,23 @@ import { useNotifications } from '../hooks/useNotifications';
 import { COLORS, PADDING, BORDER_RADIUS } from '../utils/constants';
 
 // Composant de notification
-export const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
-  const getIcon = (type) => {
+interface Notification {
+  _id?: string;
+  type?: string;
+  title?: string;
+  message?: string;
+  createdAt?: string;
+  read?: boolean;
+}
+
+interface NotificationItemProps {
+  notification: Notification;
+  onMarkAsRead?: (id?: string) => void;
+  onDelete?: (id?: string) => void;
+}
+
+export const NotificationItem: React.FC<NotificationItemProps> = ({ notification, onMarkAsRead, onDelete }) => {
+  const getIcon = (type: string) => {
     switch (type) {
       case 'milestone':
         return '📈';
@@ -29,22 +44,22 @@ export const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
   };
 
   return (
-    <TouchableOpacity
-      style={[
-        styles.notificationCard,
-        !notification.read && styles.unread,
-      ]}
-      onPress={() => onMarkAsRead(notification._id)}
-    >
+      <TouchableOpacity
+        style={[
+          styles.notificationCard,
+          !notification.read && styles.unread,
+        ]}
+        onPress={() => onMarkAsRead && onMarkAsRead(notification._id)}
+      >
       <View style={styles.notificationLeft}>
-        <Text style={styles.notificationIcon}>{getIcon(notification.type)}</Text>
+        <Text style={styles.notificationIcon}>{getIcon(notification.type || '')}</Text>
       </View>
 
       <View style={styles.notificationContent}>
         <Text style={styles.notificationTitle}>{notification.title}</Text>
         <Text style={styles.notificationMessage}>{notification.message}</Text>
         <Text style={styles.notificationTime}>
-          {new Date(notification.createdAt).toLocaleDateString('fr-FR')}
+          {new Date(notification.createdAt || Date.now()).toLocaleDateString('fr-FR')}
         </Text>
       </View>
 
@@ -54,7 +69,7 @@ export const NotificationItem = ({ notification, onMarkAsRead, onDelete }) => {
 
       <TouchableOpacity
         style={styles.deleteBtn}
-        onPress={() => onDelete(notification._id)}
+        onPress={() => onDelete && onDelete(notification._id)}
       >
         <Ionicons name="trash-outline" size={18} color={COLORS.textTertiary} />
       </TouchableOpacity>
@@ -103,7 +118,7 @@ export default function NotificationsScreen() {
       ) : (
         <FlatList
           data={notifications}
-          keyExtractor={(item) => item._id}
+          keyExtractor={(item: any) => item._id}
           renderItem={({ item }) => (
             <NotificationItem
               notification={item}

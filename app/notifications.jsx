@@ -122,7 +122,7 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.dark,
+    backgroundColor: COLORS.surface,
   },
   header: {
     flexDirection: 'row',
@@ -131,7 +131,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: PADDING.lg,
     paddingVertical: PADDING.md,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.darkMedium,
+    borderBottomColor: COLORS.border,
   },
   headerTitle: {
     fontSize: 20,
@@ -155,7 +155,7 @@ const styles = StyleSheet.create({
   },
   notificationCard: {
     flexDirection: 'row',
-    backgroundColor: COLORS.darkMedium,
+    backgroundColor: COLORS.card,
     borderRadius: BORDER_RADIUS.lg,
     padding: PADDING.md,
     marginBottom: PADDING.md,
